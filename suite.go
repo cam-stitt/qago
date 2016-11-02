@@ -1,16 +1,11 @@
 package qago
 
-import (
-	"net/url"
-	"testing"
-
-	"github.com/stretchr/testify/suite"
-)
-
 // Predicate is used to find a selection within the page
 type Predicate struct {
 	Type     string `yaml:"type"`
 	Selector string `yaml:"selector"`
+	Text     string `yaml:"text"`
+	Multi    bool   `yaml:"multi"`
 }
 
 // Query is used to extract out of the querystring
@@ -41,27 +36,8 @@ type Step struct {
 // Suite is a particular set of steps to be run
 type Suite struct {
 	Name       string       `yaml:"name"`
-	Location   url.URL      `yaml:"url"`
+	Location   string       `yaml:"location"`
 	Browser    string       `yaml:"browser"`
 	Steps      *[]Step      `yaml:"steps"`
 	Assertions *[]Assertion `yaml:"assertions"`
-}
-
-func RunSuite(seleniumSuite *Suite) error {
-	var t *testing.T
-
-	suite.Run(t, &SeleniumTestSuite{
-		SeleniumSuite: seleniumSuite,
-	})
-
-	return nil
-}
-
-type SeleniumTestSuite struct {
-	suite.Suite
-	SeleniumSuite *Suite
-}
-
-func (suite *SeleniumTestSuite) TestExample() {
-	panic("HELLO")
 }
