@@ -16,6 +16,7 @@ type Query struct {
 
 // Assertion is a validation of the current state
 type Assertion struct {
+	Text  string `yaml:"text"`
 	Query *Query `yaml:"query"`
 }
 

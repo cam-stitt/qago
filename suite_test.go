@@ -24,7 +24,8 @@ type SeleniumTestSuite struct {
 }
 
 func (sts *SeleniumTestSuite) SetupSuite() {
-	sts.Driver = agouti.ChromeDriver()
+	sts.Driver = agouti.PhantomJS()
+//	sts.Driver = agouti.ChromeDriver()
 	sts.Driver.Start()
 }
 
@@ -73,20 +74,14 @@ func (sts *SeleniumTestSuite) getSelection(page *agouti.Page, predicate *qago.Pr
 }
 
 func (sts *SeleniumTestSuite) runAction(selection *agouti.Selection, action *qago.Action) {
-	t := sts.T()
 	var err error
 	switch action.Type {
 	case qago.Click:
 		err = selection.Click()
-		if err != nil {
-			t.Fatal(err)
-		}
 	case qago.Fill:
 		err = selection.Fill(action.Text)
-		if err != nil {
-			t.Fatal(err)
-		}
 	}
+	sts.NoError(err)
 }
 
 func (sts *SeleniumTestSuite) TestSeleniumSuite() {
@@ -94,19 +89,23 @@ func (sts *SeleniumTestSuite) TestSeleniumSuite() {
 	t := sts.T()
 	capabilities := agouti.NewCapabilities().Browser(suite.Browser)
 	page, err := sts.Driver.NewPage(agouti.Desired(capabilities))
-	if err != nil {
-		t.Fatal(err)
-	}
+	sts.NoError(err)
 	err = page.Navigate(suite.Location)
-	if err != nil {
-		t.Fatal(err)
-	}
+	sts.NoError(err)
 	for _, step := range *suite.Steps {
 		t.Log(step.Name)
 		selection := sts.getSelection(page, step.Predicate)
 
 		for _, action := range *step.Actions {
 			sts.runAction(selection, &action)
+
+			for _, assertion := range *action.Assertions {
+				if assertion.Text != "" {
+					text, err := selection.Text()
+					sts.NoError(err)
+					sts.Equal(assertion.Text, text)
+				}
+			}
 		}
 		t.Log(selection)
 	}

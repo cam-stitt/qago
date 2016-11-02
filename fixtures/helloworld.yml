@@ -1,12 +1,12 @@
 name: "Hello World Test"
-location: "http://google.com"
-browser: "chrome"
+location: "http://www.google.com.au"
+browser: "phantomjs"
 steps:
   -
     name: "Complete search box"
     predicate:
-      type: "find_by_class"
-      selector: "gsfi"
+      type: "find_by_name"
+      selector: "q"
     actions:
       -
         type: "fill"
