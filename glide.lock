@@ -1,0 +1,10 @@
+hash: 4dd7505f43e04b20f4fcb714364ebdc3a3a8987f6c58e644d19bb8524e67c6f1
+updated: 2016-11-02T16:07:47.26529513+10:00
+imports:
+- name: github.com/sclevine/agouti
+  version: b920a9cc753368454c642011939e1d7ec58e0024
+- name: github.com/stretchr/testify
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
+- name: gopkg.in/yaml.v2
+  version: a5b47d31c556af34a302ce5d659e6fea44d90de0
+testImports: []

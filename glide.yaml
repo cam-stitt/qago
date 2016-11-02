@@ -1,0 +1,7 @@
+package: github.com/cam-stitt/qago
+import:
+- package: github.com/sclevine/agouti
+  version: ^2.0.0
+- package: github.com/stretchr/testify
+  version: ^1.1.4
+- package: gopkg.in/yaml.v2

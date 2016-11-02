@@ -1,0 +1,32 @@
+name: "Hello World Test"
+location: "http://google.com"
+browser: "chrome"
+steps:
+  -
+    name: "Complete search box"
+    predicate:
+      type: "find_by_class"
+      selector: "gsfi"
+    actions:
+      -
+        type: "fill"
+        text: "Selenium"
+        assertions:
+          -
+            text: "Selenium"
+  -
+    name: "Click Search button"
+    predicate:
+      type: "find_by_name"
+      selector: "btnK"
+    actions:
+      -
+        type: "click"
+        assertions:
+          -
+            succeed: true
+assertions:
+  -
+    query:
+      arg: "q"
+      expect: "Selenium"
