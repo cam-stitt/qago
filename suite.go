@@ -2,6 +2,7 @@ package qago
 
 // Predicate is used to find a selection within the page
 type Predicate struct {
+	Name     string `yaml:"name"`
 	Type     string `yaml:"type"`
 	Selector string `yaml:"selector"`
 	Text     string `yaml:"text"`
@@ -11,27 +12,35 @@ type Predicate struct {
 // Query is used to extract out of the querystring
 type Query struct {
 	Arg    string `yaml:"arg"`
-	Expect string `yaml:"expect"`
+	Value  string `yaml:"value"`
+}
+
+type Attribute struct {
+	Name  string `yaml:"name"`
+	Value string `yaml:"value"`
 }
 
 // Assertion is a validation of the current state
 type Assertion struct {
-	Text  string `yaml:"text"`
-	Query *Query `yaml:"query"`
+	Text       string `yaml:"text"`
+	Query      []Query `yaml:"query"`
+	Attributes []Attribute `yaml:"attributes"`
 }
 
 // Action is an event to perform on the selection
 type Action struct {
+	Name       string       `yaml:"name"`
 	Type       string       `yaml:"type"`
 	Text       string       `yaml:"text"`
-	Assertions *[]Assertion `yaml:"assertions"`
+	Assertions []Assertion  `yaml:"assertions"`
 }
 
 // Step is a step in our test suite
 type Step struct {
-	Name      string     `yaml:"name"`
-	Predicate *Predicate `yaml:"predicate"`
-	Actions   *[]Action  `yaml:"actions"`
+	Name      string        `yaml:"name"`
+	Predicate *Predicate    `yaml:"predicate"`
+	Actions   *[]Action     `yaml:"actions"`
+	Wait      string        `yaml:"wait"`
 }
 
 // Suite is a particular set of steps to be run

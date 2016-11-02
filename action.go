@@ -15,4 +15,5 @@ const (
 	Touch = "touch"
 	Uncheck = "uncheck"
 	UploadFile = "upload_file"
+	SendKeys = "send_keys"
 )

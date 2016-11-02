@@ -5,6 +5,8 @@ import (
 	"log"
 	"testing"
 	"flag"
+	"net/url"
+	"time"
 
 	"github.com/cam-stitt/qago"
 	"gopkg.in/yaml.v2"
@@ -20,7 +22,8 @@ func init() {
 type SeleniumTestSuite struct {
 	suite.Suite
 	SeleniumSuite *qago.Suite
-	Driver *agouti.WebDriver
+	Driver        *agouti.WebDriver
+	Page          *agouti.Page
 }
 
 func (sts *SeleniumTestSuite) SetupSuite() {
@@ -29,7 +32,8 @@ func (sts *SeleniumTestSuite) SetupSuite() {
 	sts.Driver.Start()
 }
 
-func (sts *SeleniumTestSuite) getSelection(page *agouti.Page, predicate *qago.Predicate) *agouti.Selection {
+func (sts *SeleniumTestSuite) getSelection(predicate *qago.Predicate) *agouti.Selection {
+	page := sts.Page
 	selector := predicate.Selector
 	
 	var selection *agouti.Selection
@@ -80,34 +84,79 @@ func (sts *SeleniumTestSuite) runAction(selection *agouti.Selection, action *qag
 		err = selection.Click()
 	case qago.Fill:
 		err = selection.Fill(action.Text)
+	case qago.SendKeys:
+		err = selection.SendKeys(action.Text)
 	}
 	sts.NoError(err)
 }
 
+func (sts *SeleniumTestSuite) runAssertions(selectable interface{}, assertions []qago.Assertion) {
+	for _, assertion := range action.Assertions {
+		if len(assertion.Query) > 0 {
+			currentURL, err := sts.Page.URL()
+			sts.NoError(err)
+			actualURL, err := url.Parse(currentURL)
+			sts.NoError(err)
+			query := actualURL.Query()
+			for _, arg := range assertion.Query {
+				actual := query.Get(arg.Arg)
+				sts.Equal(arg.Value, actual)
+			}
+		}
+		if assertion.Text != "" {
+			text, err := selection.Text()
+			sts.NoError(err)
+			sts.Equal(assertion.Text, text)
+		}
+		for _, attribute := range assertion.Attributes {
+			actual, err := selection.Attribute(attribute.Name)
+			sts.NoError(err)
+			sts.Equal(attribute.Value, actual)
+		}
+	}
+}
+
 func (sts *SeleniumTestSuite) TestSeleniumSuite() {
-	suite := sts.SeleniumSuite
 	t := sts.T()
+	suite := sts.SeleniumSuite
+
 	capabilities := agouti.NewCapabilities().Browser(suite.Browser)
 	page, err := sts.Driver.NewPage(agouti.Desired(capabilities))
 	sts.NoError(err)
+
 	err = page.Navigate(suite.Location)
 	sts.NoError(err)
+
 	for _, step := range *suite.Steps {
 		t.Log(step.Name)
-		selection := sts.getSelection(page, step.Predicate)
+		selection := sts.getSelection(step.Predicate)
 
 		for _, action := range *step.Actions {
+			t.Log(action.Name)
 			sts.runAction(selection, &action)
+			sts.runAssertions(selection, action.Assertions)
+		}
 
-			for _, assertion := range *action.Assertions {
-				if assertion.Text != "" {
-					text, err := selection.Text()
-					sts.NoError(err)
-					sts.Equal(assertion.Text, text)
-				}
+		if step.Wait != "" {
+			wait, err := time.ParseDuration(step.Wait)
+			sts.NoError(err)
+			time.Sleep(wait)
+		}
+	}
+
+	sts.runAssertions(nil, suite.Assertions)
+	for _, assertion := range *suite.Assertions {
+		if len(assertion.Query) > 0 {
+			currentURL, err := page.URL()
+			sts.NoError(err)
+			actualURL, err := url.Parse(currentURL)
+			sts.NoError(err)
+			query := actualURL.Query()
+			for _, arg := range assertion.Query {
+				actual := query.Get(arg.Arg)
+				sts.Equal(arg.Value, actual)
 			}
 		}
-		t.Log(selection)
 	}
 }
 
