@@ -7,11 +7,12 @@ type Predicate struct {
 	Selector string `yaml:"selector"`
 	Text     string `yaml:"text"`
 	Multi    bool   `yaml:"multi"`
+	First    bool   `yaml:"first"`
 }
 
 // KV is a query attribute to assert
 type KV struct {
-	Key   string `yaml:"name"`
+	Key   string `yaml:"key"`
 	Value string `yaml:"value"`
 }
 
@@ -34,10 +35,11 @@ type Action struct {
 
 // Step is a step in our test suite
 type Step struct {
-	Name      string     `yaml:"name"`
-	Predicate *Predicate `yaml:"predicate"`
-	Actions   []Action   `yaml:"actions"`
-	Wait      string     `yaml:"wait"`
+	Name       string     `yaml:"name"`
+	Predicate  *Predicate `yaml:"predicate"`
+	Actions    []Action   `yaml:"actions"`
+	Wait       string     `yaml:"wait"`
+	MaxRetries uint32     `yaml:"max_retries"`
 }
 
 // Case is a particular set of steps to be run

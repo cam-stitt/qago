@@ -5,7 +5,8 @@ steps:
   -
     name: "Complete search box"
     predicate:
-      type: "find_by_name"
+      name: "Look for element with name='q'"
+      type: "by_name"
       selector: "q"
     actions:
       -
@@ -17,7 +18,7 @@ steps:
             name: "Ensure value is set correctly"
             attributes:
               -
-                name: "value"
+                key: "value"
                 value: "Selenium"
     wait: 500ms
 assertions:
@@ -25,5 +26,5 @@ assertions:
     name: "Validate input is in query"
     query:
       -
-        arg: "q"
+        key: "q"
         value: "Selenium"
