@@ -9,45 +9,42 @@ type Predicate struct {
 	Multi    bool   `yaml:"multi"`
 }
 
-// Query is used to extract out of the querystring
-type Query struct {
-	Arg    string `yaml:"arg"`
-	Value  string `yaml:"value"`
-}
-
-type Attribute struct {
-	Name  string `yaml:"name"`
+// KV is a query attribute to assert
+type KV struct {
+	Key   string `yaml:"name"`
 	Value string `yaml:"value"`
 }
 
 // Assertion is a validation of the current state
 type Assertion struct {
+	Name       string `yaml:"name"`
 	Text       string `yaml:"text"`
-	Query      []Query `yaml:"query"`
-	Attributes []Attribute `yaml:"attributes"`
+	Query      []KV   `yaml:"query"`
+	Attributes []KV   `yaml:"attributes"`
+	Visible    bool   `yaml:"visible"`
 }
 
 // Action is an event to perform on the selection
 type Action struct {
-	Name       string       `yaml:"name"`
-	Type       string       `yaml:"type"`
-	Text       string       `yaml:"text"`
-	Assertions []Assertion  `yaml:"assertions"`
+	Name       string      `yaml:"name"`
+	Type       string      `yaml:"type"`
+	Text       string      `yaml:"text"`
+	Assertions []Assertion `yaml:"assertions"`
 }
 
 // Step is a step in our test suite
 type Step struct {
-	Name      string        `yaml:"name"`
-	Predicate *Predicate    `yaml:"predicate"`
-	Actions   *[]Action     `yaml:"actions"`
-	Wait      string        `yaml:"wait"`
+	Name      string     `yaml:"name"`
+	Predicate *Predicate `yaml:"predicate"`
+	Actions   []Action   `yaml:"actions"`
+	Wait      string     `yaml:"wait"`
 }
 
-// Suite is a particular set of steps to be run
-type Suite struct {
-	Name       string       `yaml:"name"`
-	Location   string       `yaml:"location"`
-	Browser    string       `yaml:"browser"`
-	Steps      *[]Step      `yaml:"steps"`
-	Assertions *[]Assertion `yaml:"assertions"`
+// Case is a particular set of steps to be run
+type Case struct {
+	Name       string      `yaml:"name"`
+	Location   string      `yaml:"location"`
+	Browser    string      `yaml:"browser"`
+	Steps      []Step      `yaml:"steps"`
+	Assertions []Assertion `yaml:"assertions"`
 }

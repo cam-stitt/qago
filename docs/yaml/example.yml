@@ -1,0 +1,45 @@
+name: "Hello World Test"
+location: "http://www.google.com.au"
+browser: "phantomjs"
+steps:
+  -
+    name: "Complete search box"
+    predicate:
+      name: "Find element with name 'q'"
+      type: "by_name"
+      selector: "q"
+      multi: true
+    predicate:
+      type: "for_appium"
+      selector: ""
+      text: ""
+    predicate:
+      type: "by_label"
+      selector: "Foo"
+      first: true
+    actions:
+      -
+        name: "Set value to Selenium"
+        type: "send_keys"
+        text: "Selenium\n"
+        assertions:
+          -
+            name: "Ensure value is set correctly"
+            attributes:
+              -
+                key: "value"
+                value: "Selenium"
+          -
+            name: "Ensure text matches"
+            text: "Bar"
+    wait: 500ms
+assertions:
+  -
+    name: "Validate input is in query"
+    query:
+      -
+        key: "q"
+        value: "Selenium"
+  -
+    name: "Ensure visibility of input"
+    visible: true
