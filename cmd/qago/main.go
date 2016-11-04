@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	cmd := exec.Command("go", "test", "-v")
+	cmd := exec.Command("go", "test")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()

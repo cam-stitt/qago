@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cam-stitt/qago"
+	"github.com/fatih/color"
 	"github.com/sclevine/agouti"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v2"
@@ -20,6 +21,12 @@ const tick = "\u2705"
 const cross = "\u2717"
 
 var directory string
+
+var bold = color.New(color.Bold).SprintFunc()
+var boldBlue = color.New(color.FgBlue, color.Bold).SprintFunc()
+var boldYellow = color.New(color.FgYellow, color.Bold).SprintFunc()
+var boldGreen = color.New(color.FgGreen, color.Bold).SprintFunc()
+var boldRed = color.New(color.FgRed, color.Bold).SprintFunc()
 
 func init() {
 	flag.StringVar(&directory, "testdir", "", "the directory for the suites")
@@ -42,17 +49,12 @@ func (sts *SeleniumTestSuite) getSelection(predicate *qago.Predicate) *agouti.Se
 	t := sts.T()
 
 	var output string
-	suffix := cross
-
-	defer func() {
-		fmt.Printf("%s: %s\n", output, suffix)
-	}()
-
 	if predicate.Name != "" {
 		output = predicate.Name
 	} else {
 		output = fmt.Sprintf("Type: %s, Selector: %s", predicate.Type, predicate.Selector)
 	}
+	fmt.Printf("%s %s - ", boldYellow("Predicate:"), output)
 
 	page := sts.Page
 	selectorType := predicate.Type
@@ -74,23 +76,27 @@ func (sts *SeleniumTestSuite) getSelection(predicate *qago.Predicate) *agouti.Se
 	returnValues := methodValue.Call(args)
 
 	if len(returnValues) != 1 {
+		fmt.Println(boldRed("Not Found"))
 		t.Fatalf("Expected a single return value from method: %s", method)
 	}
 
 	selection := returnValues[0].Interface().(*agouti.Selection)
 
-	suffix = tick
+	fmt.Println(boldGreen("Found"))
+
 	return selection
 }
 
 func (sts *SeleniumTestSuite) runAction(selection *agouti.Selection, actions []qago.Action) {
 	var err error
+	var output string
 	for idx, action := range actions {
 		if action.Name != "" {
-			fmt.Println(action.Name)
+			output = action.Name
 		} else {
-			fmt.Printf("Action %d\n", idx)
+			output = fmt.Sprintf("%d", idx)
 		}
+		fmt.Printf("%s %s - ", boldYellow("Action:"), output)
 
 		switch action.Type {
 		case qago.Click:
@@ -106,8 +112,11 @@ func (sts *SeleniumTestSuite) runAction(selection *agouti.Selection, actions []q
 		case qago.SendKeys:
 			err = selection.SendKeys(action.Text)
 		}
-		sts.NoError(err)
+		if !sts.NoError(err) {
+			fmt.Println(boldRed("Failure"))
+		}
 
+		fmt.Println(boldGreen("Success"))
 		sts.runAssertions(selection, action.Assertions)
 	}
 }
@@ -116,18 +125,13 @@ func (sts *SeleniumTestSuite) runAssertions(selectable interface{}, assertions [
 	page := sts.Page
 
 	var output string
-	suffix := cross
-
 	for idx, assertion := range assertions {
-		defer func() {
-			fmt.Printf("%s: %s\n", output, suffix)
-		}()
-
 		if assertion.Name != "" {
 			output = assertion.Name
 		} else {
-			output = fmt.Sprintf("Assertion %d", idx)
+			output = fmt.Sprintf("%d", idx)
 		}
+		fmt.Printf("%s %s - ", boldYellow("Assertion:"), output)
 
 		if len(assertion.Query) > 0 {
 			currentURL, err := page.URL()
@@ -145,18 +149,21 @@ func (sts *SeleniumTestSuite) runAssertions(selectable interface{}, assertions [
 			sts.True(ok)
 			if assertion.Text != "" {
 				text, err := selection.Text()
-				sts.NoError(err)
-				sts.Equal(assertion.Text, text)
+				if !sts.NoError(err) || !sts.Equal(assertion.Text, text) {
+					fmt.Println(boldRed("Failure"))
+				}
 			}
 			for _, attribute := range assertion.Attributes {
 				actual, err := selection.Attribute(attribute.Key)
-				sts.NoError(err)
-				sts.Equal(attribute.Value, actual)
+				if !sts.NoError(err) || !sts.Equal(attribute.Value, actual) {
+					fmt.Println(boldRed("Failure"))
+				}
 			}
 		}
 
-		suffix = tick
+		fmt.Println(boldGreen("Success"))
 	}
+	fmt.Print("\n")
 }
 
 func (sts *SeleniumTestSuite) TestSeleniumSuite() {
@@ -170,15 +177,20 @@ func (sts *SeleniumTestSuite) TestSeleniumSuite() {
 	err = page.Navigate(testCase.Location)
 	sts.NoError(err)
 
+	fmt.Printf("%s\n\n", bold(testCase.Name))
+
 	var output string
 	for idx, step := range testCase.Steps {
-		fmt.Println("=============================")
-		output = fmt.Sprintf("Step %d", idx)
+		output = boldBlue("Step ", idx)
 		if step.Name != "" {
-			output = fmt.Sprintf("%s: %s", output, step.Name)
+			output = fmt.Sprintf("%s: %s", output, bold(step.Name))
 		}
+		characterLen := len(output)
 		fmt.Printf("%s\n", output)
-		fmt.Println("=============================")
+		for i := 0; i < characterLen; i++ {
+			fmt.Print("=")
+		}
+		fmt.Print("\n")
 
 		selection := sts.getSelection(step.Predicate)
 
@@ -191,6 +203,8 @@ func (sts *SeleniumTestSuite) TestSeleniumSuite() {
 		}
 	}
 
+	fmt.Println("Running global assertions")
+	fmt.Println("=========================")
 	sts.runAssertions(nil, testCase.Assertions)
 }
 
