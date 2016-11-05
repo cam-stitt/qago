@@ -34,7 +34,7 @@ var boldRed = color.New(color.FgRed, color.Bold).SprintfFunc()
 var boldCyan = color.New(color.FgCyan, color.Bold).SprintfFunc()
 
 func init() {
-	flag.StringVar(&directory, "case-dir", "", "the directory for the suites")
+	flag.StringVar(&directory, "case-dir", "./fixtures", "the directory for the suites")
 	flag.BoolVar(&noColor, "no-color", false, "Disable color output")
 
 	flag.Parse()
