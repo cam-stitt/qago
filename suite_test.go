@@ -6,7 +6,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/url"
+	"os"
+	"path/filepath"
 	"reflect"
+	"regexp"
 	"testing"
 	"time"
 
@@ -21,20 +24,29 @@ const tick = "\u2705"
 const cross = "\u2717"
 
 var directory string
+var noColor bool
 
 var bold = color.New(color.Bold).SprintFunc()
-var boldBlue = color.New(color.FgBlue, color.Bold).SprintFunc()
-var boldYellow = color.New(color.FgYellow, color.Bold).SprintFunc()
-var boldGreen = color.New(color.FgGreen, color.Bold).SprintFunc()
-var boldRed = color.New(color.FgRed, color.Bold).SprintFunc()
+var boldBlue = color.New(color.FgBlue, color.Bold).SprintfFunc()
+var boldYellow = color.New(color.FgYellow, color.Bold).SprintfFunc()
+var boldGreen = color.New(color.FgGreen, color.Bold).SprintfFunc()
+var boldRed = color.New(color.FgRed, color.Bold).SprintfFunc()
+var boldCyan = color.New(color.FgCyan, color.Bold).SprintfFunc()
 
 func init() {
-	flag.StringVar(&directory, "testdir", "", "the directory for the suites")
+	flag.StringVar(&directory, "case-dir", "", "the directory for the suites")
+	flag.BoolVar(&noColor, "no-color", false, "Disable color output")
+
+	flag.Parse()
+
+	if noColor {
+		color.NoColor = true // disables colorized output
+	}
 }
 
 type SeleniumTestSuite struct {
 	suite.Suite
-	TestCase *qago.Case
+	FileList []os.FileInfo
 	Driver   *agouti.WebDriver
 	Page     *agouti.Page
 }
@@ -91,12 +103,13 @@ func (sts *SeleniumTestSuite) runAction(selection *agouti.Selection, actions []q
 	var err error
 	var output string
 	for idx, action := range actions {
+		output = boldYellow("Action %d:", idx)
 		if action.Name != "" {
-			output = action.Name
+			output = fmt.Sprintf("%s %s", output, action.Name)
 		} else {
-			output = fmt.Sprintf("%d", idx)
+			output = fmt.Sprintf("%s %s", action.Type)
 		}
-		fmt.Printf("%s %s - ", boldYellow("Action:"), output)
+		fmt.Printf("%s - ", output)
 
 		switch action.Type {
 		case qago.Click:
@@ -126,12 +139,11 @@ func (sts *SeleniumTestSuite) runAssertions(selectable interface{}, assertions [
 
 	var output string
 	for idx, assertion := range assertions {
+		output = boldYellow("Assertion %d:", idx)
 		if assertion.Name != "" {
-			output = assertion.Name
-		} else {
-			output = fmt.Sprintf("%d", idx)
+			output = fmt.Sprintf("%s %s", output, assertion.Name)
 		}
-		fmt.Printf("%s %s - ", boldYellow("Assertion:"), output)
+		fmt.Printf("%s - ", output)
 
 		if len(assertion.Query) > 0 {
 			currentURL, err := page.URL()
@@ -149,13 +161,13 @@ func (sts *SeleniumTestSuite) runAssertions(selectable interface{}, assertions [
 			sts.True(ok)
 			if assertion.Text != "" {
 				text, err := selection.Text()
-				if !sts.NoError(err) || !sts.Equal(assertion.Text, text) {
+				if !sts.NoError(err) && !sts.Equal(assertion.Text, text) {
 					fmt.Println(boldRed("Failure"))
 				}
 			}
 			for _, attribute := range assertion.Attributes {
 				actual, err := selection.Attribute(attribute.Key)
-				if !sts.NoError(err) || !sts.Equal(attribute.Value, actual) {
+				if !sts.NoError(err) && !sts.Equal(attribute.Value, actual) {
 					fmt.Println(boldRed("Failure"))
 				}
 			}
@@ -166,9 +178,7 @@ func (sts *SeleniumTestSuite) runAssertions(selectable interface{}, assertions [
 	fmt.Print("\n")
 }
 
-func (sts *SeleniumTestSuite) TestSeleniumSuite() {
-	testCase := sts.TestCase
-
+func (sts *SeleniumTestSuite) runTestCase(testCase qago.Case) {
 	capabilities := agouti.NewCapabilities().Browser(testCase.Browser)
 	page, err := sts.Driver.NewPage(agouti.Desired(capabilities))
 	sts.NoError(err)
@@ -177,18 +187,20 @@ func (sts *SeleniumTestSuite) TestSeleniumSuite() {
 	err = page.Navigate(testCase.Location)
 	sts.NoError(err)
 
-	fmt.Printf("%s\n\n", bold(testCase.Name))
+	prefix := "Case:"
+	suffix := testCase.Name
+	fmt.Printf("%s %s\n", boldCyan(prefix), bold(suffix))
+	for i := 0; i < len(fmt.Sprintf("%s %s", prefix, suffix)); i++ {
+		fmt.Print("=")
+	}
+	fmt.Print("\n")
 
-	var output string
 	for idx, step := range testCase.Steps {
-		output = boldBlue("Step ", idx)
-		if step.Name != "" {
-			output = fmt.Sprintf("%s: %s", output, bold(step.Name))
-		}
-		characterLen := len(output)
-		fmt.Printf("%s\n", output)
-		for i := 0; i < characterLen; i++ {
-			fmt.Print("=")
+		prefix = fmt.Sprintf("Step %d:", idx)
+		suffix = step.Name
+		fmt.Printf("%s %s\n", boldBlue(prefix), bold(suffix))
+		for i := 0; i < len(fmt.Sprintf("%s %s", prefix, suffix)); i++ {
+			fmt.Print("-")
 		}
 		fmt.Print("\n")
 
@@ -203,9 +215,24 @@ func (sts *SeleniumTestSuite) TestSeleniumSuite() {
 		}
 	}
 
-	fmt.Println("Running global assertions")
-	fmt.Println("=========================")
+	fmt.Println(bold("Running global assertions"))
+	fmt.Println("-------------------------")
 	sts.runAssertions(nil, testCase.Assertions)
+}
+
+func (sts *SeleniumTestSuite) TestSeleniumSuite() {
+	for _, file := range sts.FileList {
+		data, err := ioutil.ReadFile(filepath.Join(directory, file.Name()))
+		if err != nil {
+			log.Fatalf("error: %v", err)
+		}
+		testCase := qago.Case{}
+		err = yaml.Unmarshal(data, &testCase)
+		if err != nil {
+			log.Fatalf("error: %v", err)
+		}
+		sts.runTestCase(testCase)
+	}
 }
 
 func (sts *SeleniumTestSuite) TearDownSuite() {
@@ -213,17 +240,26 @@ func (sts *SeleniumTestSuite) TearDownSuite() {
 }
 
 func TestAutomatedSuite(t *testing.T) {
-	data, err := ioutil.ReadFile("fixtures/helloworld.yml")
+	var fileList []os.FileInfo
+	files, err := ioutil.ReadDir(directory)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		log.Fatal(err)
 	}
-	testCase := qago.Case{}
-	err = yaml.Unmarshal(data, &testCase)
-	if err != nil {
-		log.Fatalf("error: %v", err)
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		fileName := file.Name()
+		matched, err := regexp.MatchString(".+.yml", fileName)
+		if err != nil {
+			panic(err)
+		}
+		if matched {
+			fileList = append(fileList, file)
+		}
 	}
 
 	suite.Run(t, &SeleniumTestSuite{
-		TestCase: &testCase,
+		FileList: fileList,
 	})
 }
