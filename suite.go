@@ -250,6 +250,11 @@ func (s *Suite) getSelection(predicate *Predicate) (*agouti.Selection, error) {
 
 	selection := returnValues[0].Interface().(*agouti.Selection)
 
+	if count, err := selection.Count(); err != nil || count <= 0 {
+		fmt.Println(boldRed("Not Found"))
+		return nil, fmt.Errorf("No selections found")
+	}
+
 	fmt.Println(boldGreen("Found"))
 
 	return selection, nil
