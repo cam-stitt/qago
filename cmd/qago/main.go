@@ -2,10 +2,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
-	"os/exec"
-	"strconv"
+
+	"github.com/cam-stitt/qago"
 )
 
 var directory string
@@ -17,10 +16,10 @@ func main() {
 
 	flag.Parse()
 
-	colorString := strconv.FormatBool(noColor)
+	suite := qago.Suite{
+		Directory: directory,
+		NoColor:   noColor,
+	}
 
-	cmd := exec.Command("go", "test", fmt.Sprintf("-no-color=%s", colorString), fmt.Sprintf("-case-dir=%s", directory))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
+	os.Exit(suite.Run())
 }
