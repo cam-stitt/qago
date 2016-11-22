@@ -22,6 +22,7 @@ type Assertion struct {
 	Text       string `yaml:"text"`
 	Query      []KV   `yaml:"query"`
 	Attributes []KV   `yaml:"attributes"`
+	URL        string `yaml:"url"`
 	Visible    bool   `yaml:"visible"`
 }
 
@@ -30,6 +31,7 @@ type Action struct {
 	Name       string      `yaml:"name"`
 	Type       string      `yaml:"type"`
 	Text       string      `yaml:"text"`
+	Wait       string      `yaml:"wait"`
 	Assertions []Assertion `yaml:"assertions"`
 }
 

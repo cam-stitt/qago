@@ -130,6 +130,12 @@ func (sts *SeleniumTestSuite) runAction(selection *agouti.Selection, actions []q
 		}
 
 		fmt.Println(boldGreen("Success"))
+
+		if action.Wait != "" {
+			wait, err := time.ParseDuration(action.Wait)
+			sts.NoError(err)
+			time.Sleep(wait)
+		}
 		sts.runAssertions(selection, action.Assertions)
 	}
 }
@@ -155,6 +161,11 @@ func (sts *SeleniumTestSuite) runAssertions(selectable interface{}, assertions [
 				actual := query.Get(arg.Key)
 				sts.Equal(arg.Value, actual)
 			}
+		}
+		if assertion.URL != "" {
+			currentURL, err := page.URL()
+			sts.NoError(err)
+			sts.Equal(assertion.URL, currentURL)
 		}
 		if selectable != nil {
 			selection, ok := selectable.(*agouti.Selection)
