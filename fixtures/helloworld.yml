@@ -19,7 +19,7 @@ steps:
             attributes:
               -
                 key: "value"
-                value: "Selenium1asdf"
+                value: "Selenium"
     wait: 500ms
 assertions:
   -
