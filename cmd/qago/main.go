@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"os"
 
 	"github.com/cam-stitt/qago"
 )
@@ -20,5 +21,5 @@ func main() {
 		NoColor:   noColor,
 	}
 
-	suite.Run()
+	os.Exit(suite.Run())
 }

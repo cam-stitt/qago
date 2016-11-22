@@ -32,12 +32,12 @@ type Suite struct {
 	Page      *agouti.Page
 }
 
-func (s *Suite) readFiles() {
+func (s *Suite) readFiles() error {
 	fileList := []os.FileInfo{}
 
 	files, err := ioutil.ReadDir(s.Directory)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	for _, file := range files {
 		if file.IsDir() {
@@ -46,7 +46,7 @@ func (s *Suite) readFiles() {
 		fileName := file.Name()
 		matched, err := regexp.MatchString(".+.yml", fileName)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		if matched {
 			fileList = append(fileList, file)
@@ -54,9 +54,15 @@ func (s *Suite) readFiles() {
 	}
 
 	s.FileList = fileList
+
+	return nil
 }
 
-func (s *Suite) Run() {
+func (s *Suite) Run() int {
+	defer func(begin time.Time) {
+		fmt.Printf("Took: %s\n", time.Since(begin))
+	}(time.Now())
+
 	if s.NoColor {
 		color.NoColor = true
 	}
@@ -65,7 +71,10 @@ func (s *Suite) Run() {
 	//	sts.Driver = agouti.ChromeDriver()
 	s.Driver.Start()
 
-	s.readFiles()
+	err := s.readFiles()
+	if err != nil {
+		return 1
+	}
 
 	for _, file := range s.FileList {
 		data, err := ioutil.ReadFile(filepath.Join(s.Directory, file.Name()))
@@ -77,22 +86,27 @@ func (s *Suite) Run() {
 		if err != nil {
 			log.Fatalf("error: %v", err)
 		}
-		s.runTestCase(testCase)
+		err = s.runTestCase(testCase)
+		if err != nil {
+			return 1
+		}
 	}
+
+	return 0
 }
 
-func (s *Suite) runTestCase(testCase Case) {
+func (s *Suite) runTestCase(testCase Case) error {
 	capabilities := agouti.NewCapabilities().Browser(testCase.Browser)
 	page, err := s.Driver.NewPage(agouti.Desired(capabilities))
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	s.Page = page
 
 	err = page.Navigate(testCase.Location)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	prefix := "Case:"
@@ -114,15 +128,18 @@ func (s *Suite) runTestCase(testCase Case) {
 
 		selection, err := s.getSelection(step.Predicate)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
-		s.runAction(selection, step.Actions)
+		err = s.runAction(selection, step.Actions)
+		if err != nil {
+			return err
+		}
 
 		if step.Wait != "" {
 			wait, err := time.ParseDuration(step.Wait)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			time.Sleep(wait)
 		}
@@ -130,7 +147,7 @@ func (s *Suite) runTestCase(testCase Case) {
 
 	fmt.Println(bold("Running global assertions"))
 	fmt.Println("-------------------------")
-	s.runAssertions(nil, testCase.Assertions)
+	return s.runAssertions(nil, testCase.Assertions)
 }
 
 func (s *Suite) runAssertions(selectable interface{}, assertions []Assertion) error {
@@ -177,14 +194,16 @@ func (s *Suite) runAssertions(selectable interface{}, assertions []Assertion) er
 			}
 			if assertion.Text != "" {
 				text, err := selection.Text()
-				if err != nil && assertion.Text != text {
-					fmt.Println(boldRed("Failure"))
+				if err != nil || assertion.Text != text {
+					fmt.Println(boldRed("Failure\n"))
+					return fmt.Errorf("Failure")
 				}
 			}
 			for _, attribute := range assertion.Attributes {
 				actual, err := selection.Attribute(attribute.Key)
-				if err != nil && attribute.Value != actual {
-					fmt.Println(boldRed("Failure"))
+				if err != nil || attribute.Value != actual {
+					fmt.Println(boldRed("Failure\n"))
+					return fmt.Errorf("Failure")
 				}
 			}
 		}
@@ -264,6 +283,7 @@ func (s *Suite) runAction(selection *agouti.Selection, actions []Action) error {
 		}
 		if err != nil {
 			fmt.Println(boldRed("Failure"))
+			return fmt.Errorf("Failure")
 		}
 
 		fmt.Println(boldGreen("Success"))
@@ -275,7 +295,7 @@ func (s *Suite) runAction(selection *agouti.Selection, actions []Action) error {
 			}
 			time.Sleep(wait)
 		}
-		s.runAssertions(selection, action.Assertions)
+		return s.runAssertions(selection, action.Assertions)
 	}
 
 	return nil
