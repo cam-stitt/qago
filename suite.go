@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"time"
 
-	yaml "gopkg.in/yaml.v1"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/fatih/color"
 	"github.com/sclevine/agouti"
